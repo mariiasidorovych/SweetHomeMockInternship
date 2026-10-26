@@ -2002,12 +2002,62 @@ public class PlanComponent extends JComponent implements PlanView, Scrollable, P
     }
     return strokeWidth;
   }
-  
+
+  @Override
+  public int print(Graphics g, PageFormat pageFormat, int pageIndex) {
+    Level originalLevel = this.home.getSelectedLevel();
+
+    try {
+      // Preserve normal printing for homes without levels.
+      if (this.home.getLevels().isEmpty()) {
+        return printSelectedLevel(g, pageFormat, pageIndex);
+      }
+
+      int remainingPage = pageIndex;
+
+      // Print every viewable level in the home's level order.
+      for (Level level : this.home.getLevels()) {
+        if (!level.isViewable()) {
+          continue;
+        }
+
+        this.home.setSelectedLevel(level);
+
+        // A level may require multiple pages at a fixed print scale.
+        for (int levelPage = 0; ; levelPage++) {
+          Graphics2D testGraphics = (Graphics2D)g.create();
+          int result;
+
+          try {
+            result = printSelectedLevel(testGraphics, pageFormat, levelPage);
+          } finally {
+            testGraphics.dispose();
+          }
+
+          if (result == NO_SUCH_PAGE) {
+            break;
+          }
+
+          if (remainingPage == 0) {
+            return printSelectedLevel(g, pageFormat, levelPage);
+          }
+
+          remainingPage--;
+        }
+      }
+
+      return NO_SUCH_PAGE;
+    } finally {
+      // Restore the user's original level even if printing fails.
+      this.home.setSelectedLevel(originalLevel);
+    }
+  }
+
   /**
    * Prints this component plan at the scale given in the home print attributes or at a scale 
    * that makes it fill <code>pageFormat</code> imageable size if this attribute is <code>null</code>.
    */
-  public int print(Graphics g, PageFormat pageFormat, int pageIndex) {
+  public int printSelectedLevel(Graphics g, PageFormat pageFormat, int pageIndex) {
     List<Selectable> printedItems = getPaintedItems(); 
     Rectangle2D printedItemBounds = getItemsBounds(g, printedItems);
     if (printedItemBounds != null) {

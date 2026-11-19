@@ -2025,7 +2025,8 @@ public class PlanComponent extends JComponent implements PlanView, Scrollable, P
 
         // A level may require multiple pages at a fixed print scale.
         for (int levelPage = 0; ; levelPage++) {
-          Graphics2D testGraphics = (Graphics2D)g.create();
+          Graphics2D testGraphics =
+                  new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB).createGraphics();
           int result;
 
           try {
